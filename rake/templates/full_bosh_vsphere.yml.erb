@@ -18,7 +18,7 @@ networks:
     - <%= net_static_bat %>
     static:
     - <%= net_static_bosh %>
-    gateway: <% gateway %>
+    gateway: <%= gateway %>
     dns:
     - <%= dns %>
     cloud_properties:
@@ -47,6 +47,6 @@ properties:
         allow_mixed_datastores: true
         clusters:
         - <%= vcenter_cluster %>:
-          resource_pool: <%= vcenter_rp %>
+            resource_pool: <%= vcenter_rp %>
 
 
