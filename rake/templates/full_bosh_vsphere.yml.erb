@@ -11,8 +11,10 @@ networks:
   - range: <%= net_cidr %>
     reserved:
     - <%= microbosh_ip %>
-    - <%= network_reserved_admin %>
-    - <%= net_reserved %>
+    - <%= net_reserved_admin %>
+    <% net_reserved.each do |reserved| %>
+    - <%= reserved %>
+    <% end %>
     - <%= net_static_bat %>
     static:
     - <%= net_static_bosh %>
