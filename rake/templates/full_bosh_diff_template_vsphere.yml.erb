@@ -1,0 +1,227 @@
+---
+name: <%= find("name") %>
+director_uuid: <%= find("director_uuid") %>
+release:
+  name: bosh
+  version: latest
+
+networks:
+- name: default
+  subnets:
+  <%- for @subnet in find("networks.default.subnets") -%>
+  - range: <%= find_in("range", @subnet) %>
+    reserved:
+    <%- for @reserved in find_in("reserved", @subnet) -%>
+    - <%= @reserved %>
+    <%- end -%>
+    static:
+    <%- for @static in find_in("static", @subnet) -%>
+    - <%= @static %>
+    <%- end -%>
+    gateway: <%= find_in("gateway", @subnet) %>
+    dns:
+    <%- for @dns in find_in("dns", @subnet) -%>
+    - <%= @dns %>
+    <%- end -%>
+    cloud_properties:
+      name: <%= find_in("cloud_properties.name", @subnet) %>
+  <%- end -%>
+
+resource_pools:
+- name: small
+  stemcell:
+    name: bosh-stemcell
+    version: latest
+  network: default
+  size: 6
+  cloud_properties:
+    ram: 512
+    disk: 2048
+    cpu: 1
+- name: large
+  stemcell:
+    name: bosh-stemcell
+    version: latest
+  network: default
+  size: 1
+  cloud_properties:
+    ram: 2048
+    disk: 8192
+    cpu: 2
+
+compilation:
+  workers: 4
+  network: default
+  cloud_properties:
+    ram: 2048
+    disk: 4048
+    cpu: 4
+
+update:
+  canaries: 1
+  canary_watch_time: 60000
+  update_watch_time: 60000
+  max_in_flight: 1
+  max_errors: 1
+
+jobs:
+
+- name: nats
+  template: nats
+  instances: 1
+  resource_pool: small
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(1, "default.static") %>
+
+- name: blobstore
+  template: blobstore
+  instances: 1
+  resource_pool: small
+  persistent_disk: 20480
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(2, "default.static") %>
+
+- name: postgres
+  template: postgres
+  instances: 1
+  resource_pool: small
+  persistent_disk: 2048
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(3, "default.static") %>
+
+- name: redis
+  template: redis
+  instances: 1
+  resource_pool: small
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(4, "default.static") %>
+
+- name: powerdns
+  template: powerdns
+  instances: 1
+  resource_pool: small
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(5, "default.static") %>
+
+- name: director
+  template: director
+  instances: 1
+  resource_pool: large
+  persistent_disk: 2048
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(0, "default.static") %>
+
+- name: health_monitor
+  template: health_monitor
+  instances: 1
+  resource_pool: small
+  networks:
+  - name: default
+    static_ips:
+    - <%= ip(6, "default.static") %>
+
+properties:
+  env:
+
+  blobstore:
+    address: <%= ip(5, "default.static") %>
+    port: 25251
+    backend_port: 25552
+    agent:
+      user: agent
+      password: "AgenT"
+    director:
+      user: director
+      password: "DirectoR"
+
+  networks:
+    apps: default
+    management: default
+
+  nats:
+    user: nats
+    password: "0b450ada9f830085e2cdeff6"
+    address: <%= ip(1, "default.static") %>
+    port: 4222
+
+  <%- if find("properties")["ntp"].nil? -%>
+  ntp:
+  - 172.22.22.4
+  - 172.22.22.5
+  <%- else -%>
+  ntp:
+    <%- for @ntp in find("properties.ntp") -%>
+  - <%= @ntp %>
+    <%- end -%>
+  <%- end -%>
+
+  postgres:
+    user: bosh
+    password: "a7a33139c8e3f34bc201351b"
+    address: <%= ip(2, "default.static") %>
+    port: 5432
+    database: bosh
+
+  redis:
+    address: <%= ip(3, "default.static") %>
+    port: 25255
+    password: "R3d!S"
+
+  director:
+    name: <%= find("properties.director.name") %>
+    address: <%= ip(4, "default.static") %>
+    port: 25555
+
+  hm:
+    http:
+      port: 25923
+      user: admin
+      password: "admin"
+    director_account:
+      user: admin
+      password: "admin"
+    intervals:
+      poll_director: 60
+      poll_grace_period: 30
+      log_stats: 300
+      analyze_agents: 60
+      agent_timeout: 180
+      rogue_agent_alert: 180
+    loglevel: info
+
+  vcenter:
+    address: <%= find("properties.vcenter.address") %>
+    user: <%= find("properties.vcenter.user") %>
+    password: "<%= find("properties.vcenter.password") %>"
+    datacenters:
+    <%- for @dc in find("properties.vcenter.datacenters") -%>
+      - name: <%= find_in("name", @dc) %>
+        vm_folder: <%= find_in("vm_folder", @dc) %>
+        template_folder: <%= find_in("template_folder", @dc) %>
+        disk_path: <%= find_in("disk_path", @dc) %>
+        datastore_pattern: <%= find_in("datastore_pattern", @dc) %>
+        persistent_datastore_pattern: <%= find_in("persistent_datastore_pattern", @dc) %>
+        allow_mixed_datastores: <%= find_in("allow_mixed_datastores", @dc) %>
+        clusters:
+        <%- for @cluster in find_in("clusters", @dc) -%>
+          <%- if @cluster.class == Hash -%>
+          <%-   @name, @cluster_hash = @cluster.to_a[0] -%>
+        - <%=   @name %>:
+            resource_pool: <%= @cluster_hash["resource_pool"] %>
+          <%- else -%>
+        - <%=   @cluster %>
+          <%- end -%>
+        <%- end -%>
+    <%- end -%>

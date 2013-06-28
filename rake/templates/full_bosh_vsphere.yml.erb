@@ -1,0 +1,50 @@
+---
+name: full-bosh-vsphere-jenkins
+director_uuid: <%= director_uuid %>
+release:
+  name: bosh
+  version: latest
+
+networks:
+- name: default
+  subnets:
+  - range: <%= net_cidr %>
+    reserved:
+    - <%= microbosh_ip %>
+    - <%= network_reserved_admin %>
+    - <%= net_reserved %>
+    - <%= net_static_bat %>
+    static:
+    - <%= net_static_bosh %>
+    gateway: <% gateway %>
+    dns:
+    - <%= dns %>
+    cloud_properties:
+      name: <%= net_id %>
+
+properties:
+  env:
+
+  ntp:
+  - <%= ntp_server %>
+
+  director:
+    name: full-bosh-vsphere-jenkins
+
+  vcenter:
+    address: <%= vcenter %>
+    user: <%= vcenter_user %>
+    password: <%= vcenter_pwd %>
+    datacenters:
+      - name: <%= vcenter_dc %>
+        vm_folder: <%= vcenter_folder_prefix %>_VMs
+        template_folder: <%= vcenter_folder_prefix %>_Templates
+        disk_path: <%= vcenter_folder_prefix %>_Disks
+        datastore_pattern: <%= vcenter_datastore_pattern %>
+        persistent_datastore_pattern: <%= vcenter_datastore_pattern %>
+        allow_mixed_datastores: true
+        clusters:
+        - <%= vcenter_cluster %>:
+          resource_pool: <%= vcenter_rp %>
+
+

@@ -238,6 +238,17 @@ namespace :spec do
         end
       end
 
+      task :full do
+        begin
+          Rake::Task['spec:system:vsphere:deploy_micro'].invoke
+          Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
+          #Rake::Task['spec:system:vsphere:bat'].invoke
+        ensure
+          #Rake::Task['spec:system:vsphere:teardown_full_bosh'].invoke
+          #Rake::Task['spec:system:vsphere:teardown_microbosh'].invoke
+        end
+      end
+
       task :deploy_micro do
         rm_rf('/tmp/vsphere-ci/deployments')
         mkdir_p('/tmp/vsphere-ci/deployments/microbosh')
@@ -255,6 +266,14 @@ namespace :spec do
           st_version = stemcell_version(latest_vsphere_stemcell_path)
           generate_vsphere_bat_manifest(director_uuid, st_version)
         end
+      end
+
+      task :deploy_full_bosh do
+        status = run_bosh 'status'
+        director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
+        generate_vsphere_full_bosh_stub(director_uuid)
+        #run_bosh 'bosh deployment bosh.yml'
+        #run_bosh 'bosh diff full_bosh_diff_template_vsphere.yml.erb'
       end
 
       task :teardown_microbosh do
@@ -379,14 +398,44 @@ namespace :spec do
       end
     end
 
+    def generate_vsphere_full_bosh_stub(director_uuid)
+      microbosh_ip = ENV['BOSH_VSPHERE_MICROBOSH_IP']
+      gateway = ENV['BOSH_VSPHERE_GATEWAY']
+      net_cidr = ENV['BOSH_VSPHERE_NETWORK_CIDR']
+      net_reserved_admin = ENV['BOSH_VSPHERE_NETWORK_RESERVED_ADMIN']
+      net_reserved = ENV['BOSH_VSPHERE_NETWORK_RESERVED'].split(/[|,]/).map(&:strip)
+      net_static_bat = ENV['BOSH_VSPHERE_NETWORK_STATIC_BAT']
+      net_static_bosh = ENV['BOSH_VSPHERE_NETWORK_STATIC_BOSH']
+      dns = ENV['BOSH_VSPHERE_DNS']
+      net_id = ENV['BOSH_VSPHERE_NET_ID']
+      ntp_server = ENV['BOSH_VSPHERE_NTP_SERVER']
+      vcenter = ENV['BOSH_VSPHERE_VCENTER']
+      vcenter_user = ENV['BOSH_VSPHERE_VCENTER_USER']
+      vcenter_pwd = ENV['BOSH_VSPHERE_VCENTER_PASSWORD']
+      vcenter_dc = ENV['BOSH_VSPHERE_VCENTER_DC']
+      vcenter_cluster = ENV['BOSH_VSPHERE_VCENTER_CLUSTER']
+      vcenter_rp = ENV['BOSH_VSPHERE_VCENTER_RESOURCE_POOL']
+      vcenter_folder_prefix = ENV['BOSH_VSPHERE_VCENTER_FOLDER_PREFIX']
+      vcenter_ubosh_folder_prefix = ENV['BOSH_VSPHERE_VCENTER_UBOSH_FOLDER_PREFIX']
+      vcenter_datastore_pattern = ENV['BOSH_VSPHERE_VCENTER_DATASTORE_PATTERN']
+      vcenter_ubosh_datastore_pattern = ENV['BOSH_VSPHERE_VCENTER_UBOSH_DATASTORE_PATTERN']
+      template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'templates', 'full_bosh_vsphere.yml.erb'))
+      bosh_manifest = ERB.new(File.read(template_path)).result(binding)
+      File.open("bosh.yml", "w+") do |f|
+        f.write(bosh_manifest)
+      end
+    end
+
     def generate_vsphere_bat_manifest(director_uuid, st_version)
       ip = ENV['BOSH_VSPHERE_BAT_IP']
       net_id = ENV['BOSH_VSPHERE_NET_ID']
       stemcell_version = st_version
       net_cidr = ENV['BOSH_VSPHERE_NETWORK_CIDR']
+      net_reserved_admin = ENV['BOSH_VSPHERE_NETWORK_RESERVED_ADMIN']
       net_reserved = ENV['BOSH_VSPHERE_NETWORK_RESERVED'].split(/[|,]/).map(&:strip)
-      net_static = ENV['BOSH_VSPHERE_NETWORK_STATIC']
-      net_gateway = ENV['BOSH_VSPHERE_NETWORK_GATEWAY']
+      net_static_bat = ENV['BOSH_VSPHERE_NETWORK_STATIC_BAT']
+      net_static_bosh = ENV['BOSH_VSPHERE_NETWORK_STATIC_BOSH']
+      gateway = ENV['BOSH_VSPHERE_GATEWAY']
       template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'templates', 'bat_vsphere.yml.erb'))
       bat_manifest = ERB.new(File.read(template_path)).result(binding)
       File.open('bat.yml', 'w+') do |f|
