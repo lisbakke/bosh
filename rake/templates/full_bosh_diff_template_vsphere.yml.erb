@@ -163,6 +163,7 @@ properties:
 
   postgres: &bosh_db
     password: "a7a33139c8e3f34bc201351b"
+    host: <%= ip(2, "default.static") %>
     address: <%= ip(2, "default.static") %>
     port: 5432
 
@@ -177,7 +178,8 @@ properties:
     port: 25555
     db: *bosh_db
 
-  powerdns:
+  dns:
+    address: <%= ip(5, "default.static") %>
     db: *bosh_db
 
   hm:
