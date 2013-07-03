@@ -265,15 +265,16 @@ namespace :spec do
           director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
           st_version = stemcell_version(latest_vsphere_stemcell_path)
           generate_vsphere_bat_manifest(director_uuid, st_version)
+          generate_vsphere_full_bosh_stub(director_uuid)
         end
       end
 
       task :deploy_full_bosh do
-        status = run_bosh 'status'
-        director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
-        generate_vsphere_full_bosh_stub(director_uuid)
-        #run_bosh 'bosh deployment bosh.yml'
-        #run_bosh 'bosh diff full_bosh_diff_template_vsphere.yml.erb'
+        run_bosh 'deployment /tmp/vsphere-ci/deployments/bosh.yml'
+        run_bosh 'diff rake/templates/full_bosh_diff_template_vsphere.yml.erb'
+        run_bosh "upload release http://s3.amazonaws.com/bosh-ci-pipeline/release/bosh-#{Bosh::Helpers::Build.candidate.number}.tgz"
+        run_bosh "upload stemcell http://s3.amazonaws.com/bosh-ci-pipeline/bosh-stemcell/vsphere/bosh-stemcell-vsphere-#{Bosh::Helpers::Build.candidate.number}.tgz"
+        run_bosh 'deploy'
       end
 
       task :teardown_microbosh do

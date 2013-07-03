@@ -163,18 +163,18 @@ properties:
 
   postgres: &bosh_db
     password: "a7a33139c8e3f34bc201351b"
-    host: <%= ip(2, "default.static") %>
-    address: <%= ip(2, "default.static") %>
+    host: <%= ip(3, "default.static") %>
+    address: <%= ip(3, "default.static") %>
     port: 5432
 
   redis:
-    address: <%= ip(3, "default.static") %>
+    address: <%= ip(4, "default.static") %>
     port: 25255
     password: "R3d!S"
 
   director:
     name: <%= find("properties.director.name") %>
-    address: <%= ip(4, "default.static") %>
+    address: <%= ip(0, "default.static") %>
     port: 25555
     db: *bosh_db
 
