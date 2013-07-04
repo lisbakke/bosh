@@ -1,0 +1,2 @@
+require_relative 'bat_manifest/openstack_bat_manifest'
+require_relative 'bat_manifest/vsphere_bat_manifest'

@@ -2,6 +2,8 @@ require 'rspec'
 require 'rspec/core/rake_task'
 require 'tempfile'
 
+require_relative '../helpers/bat_manifest'
+
 namespace :spec do
   desc 'Run BOSH integration tests against a local sandbox'
   task :integration do
@@ -16,7 +18,7 @@ namespace :spec do
     trap('INT') do
       exit
     end
-    
+
     builds = Dir['*'].select { |f| File.directory?(f) && File.exists?("#{f}/spec") }
     builds -= ['bat']
 
@@ -185,6 +187,19 @@ namespace :spec do
         end
       end
 
+      desc 'Generate a BAT deployment manifest for OpenStack.'
+      task :bat_manifest, :net_type, :director_uuid, :st_version do |_, args|
+        bat_manifest = Bosh::Helpers::BatManifest::OpenstackBatManifest.new
+        bat_manifest.load_env(ENV)
+        bat_manifest.stemcell_version_override = args.st_version
+        pp bat_manifest
+        template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..',
+                                                   'templates', 'bat_openstack.yml.erb'))
+        output_path = 'bat.yml'
+        bat_manifest.generate(template_path, output_path, args.net_type, args.director_uuid)
+        puts "wrote #{output_path}"
+      end
+
       task :deploy_micro, [:net_type] do |t, net_type|
         rm_rf('/tmp/openstack-ci/deployments')
         mkdir_p('/tmp/openstack-ci/deployments/microbosh')
@@ -200,7 +215,7 @@ namespace :spec do
           status = run_bosh 'status'
           director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
           st_version = stemcell_version(latest_openstack_stemcell_path)
-          generate_openstack_bat_manifest(net_type, director_uuid, st_version)
+          Rake::Task[:bat_manifest].invoke(net_type, director_uuid, st_version)
         end
       end
 
@@ -242,11 +257,24 @@ namespace :spec do
         begin
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
-          #Rake::Task['spec:system:vsphere:bat'].invoke
+            #Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
           #Rake::Task['spec:system:vsphere:teardown_full_bosh'].invoke
           #Rake::Task['spec:system:vsphere:teardown_microbosh'].invoke
         end
+      end
+
+      desc 'Generate a BAT deployment manifest for vSphere.'
+      task :bat_manifest, :director_uuid, :st_version do |_, args|
+        bat_manifest = Bosh::Helpers::BatManifest::VsphereBatManifest.new
+        bat_manifest.load_env(ENV)
+        bat_manifest.stemcell_version_override = args.st_version
+        pp bat_manifest
+        template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..',
+                                                   'templates', 'bat_vsphere.yml.erb'))
+        output_path = 'bat.yml'
+        bat_manifest.generate(template_path, output_path, args.director_uuid)
+        puts "wrote #{output_path}"
       end
 
       task :deploy_micro do
@@ -264,7 +292,7 @@ namespace :spec do
           status = run_bosh 'status'
           director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
           st_version = stemcell_version(latest_vsphere_stemcell_path)
-          generate_vsphere_bat_manifest(director_uuid, st_version)
+          Rake::Task[:bat_manifest].invoke(director_uuid, st_version)
           generate_vsphere_full_bosh_stub(director_uuid)
         end
       end
@@ -360,21 +388,6 @@ namespace :spec do
       end
     end
 
-    def generate_openstack_bat_manifest(net_type, director_uuid, st_version)
-      vip = ENV['BOSH_OPENSTACK_VIP_BAT_IP']
-      net_id = ENV['BOSH_OPENSTACK_NET_ID']
-      stemcell_version = st_version
-      net_cidr = ENV['BOSH_OPENSTACK_NETWORK_CIDR']
-      net_reserved = ENV['BOSH_OPENSTACK_NETWORK_RESERVED']
-      net_static = ENV['BOSH_OPENSTACK_NETWORK_STATIC']
-      net_gateway = ENV['BOSH_OPENSTACK_NETWORK_GATEWAY']
-      template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'templates', 'bat_openstack.yml.erb'))
-      bat_manifest = ERB.new(File.read(template_path)).result(binding)
-      File.open('bat.yml', 'w+') do |f|
-        f.write(bat_manifest)
-      end
-    end
-
     def generate_vsphere_micro_bosh
       ip = ENV['BOSH_VSPHERE_MICROBOSH_IP']
       netmask = ENV['BOSH_VSPHERE_NETMASK']
@@ -424,23 +437,6 @@ namespace :spec do
       bosh_manifest = ERB.new(File.read(template_path)).result(binding)
       File.open("bosh.yml", "w+") do |f|
         f.write(bosh_manifest)
-      end
-    end
-
-    def generate_vsphere_bat_manifest(director_uuid, st_version)
-      ip = ENV['BOSH_VSPHERE_BAT_IP']
-      net_id = ENV['BOSH_VSPHERE_NET_ID']
-      stemcell_version = st_version
-      net_cidr = ENV['BOSH_VSPHERE_NETWORK_CIDR']
-      net_reserved_admin = ENV['BOSH_VSPHERE_NETWORK_RESERVED_ADMIN']
-      net_reserved = ENV['BOSH_VSPHERE_NETWORK_RESERVED'].split(/[|,]/).map(&:strip)
-      net_static_bat = ENV['BOSH_VSPHERE_NETWORK_STATIC_BAT']
-      net_static_bosh = ENV['BOSH_VSPHERE_NETWORK_STATIC_BOSH']
-      gateway = ENV['BOSH_VSPHERE_GATEWAY']
-      template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'templates', 'bat_vsphere.yml.erb'))
-      bat_manifest = ERB.new(File.read(template_path)).result(binding)
-      File.open('bat.yml', 'w+') do |f|
-        f.write(bat_manifest)
       end
     end
 

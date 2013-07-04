@@ -12,9 +12,12 @@ properties:
   network:
     cidr: <%= net_cidr %>
     reserved:
+      - <%= microbosh_ip %>
+      - <%= net_reserved_admin %>
       <% net_reserved.each do |reserved| %>
       - <%= reserved %>
       <% end %>
+      - <%= net_static_bosh %>
     static:
       - <%= net_static_bat %>
     gateway: <%= gateway %>
