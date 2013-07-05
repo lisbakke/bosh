@@ -248,7 +248,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke('', '/tmp/vsphere-ci/deployments')
+          Rake::Task['spec:system:teardown_bosh'].invoke('', File.dirname(bosh_deployments_path))
         end
       end
 
@@ -258,7 +258,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], '/tmp/vsphere-ci/deployments')
+          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], File.dirname(bosh_deployments_path))
         end
       end
 
@@ -276,9 +276,8 @@ namespace :spec do
       end
 
       task :deploy_micro do
-        rm_rf('/tmp/vsphere-ci/deployments')
-        mkdir_p('/tmp/vsphere-ci/deployments/microbosh')
-        cd('/tmp/vsphere-ci/deployments') do
+        cd(bosh_deployments_path) do
+          mkdir_p('microbosh')
           cd('microbosh') do
             generate_vsphere_micro_bosh
           end
@@ -289,8 +288,10 @@ namespace :spec do
       end
 
       task :deploy_full_bosh do
-        generate_vsphere_full_bosh_stub(target_uuid)
-        run_bosh 'deployment /tmp/vsphere-ci/deployments/bosh.yml'
+        cd(bosh_deployments_path) do
+          generate_vsphere_full_bosh_stub(target_uuid)
+        end
+        run_bosh "deployment #{bosh_deployments_path}/bosh.yml"
         run_bosh 'diff rake/templates/full_bosh_diff_template_vsphere.yml.erb'
         run_bosh "upload release http://s3.amazonaws.com/bosh-ci-pipeline/release/bosh-#{Bosh::Helpers::Build.candidate.number}.tgz"
         run_bosh "upload stemcell http://s3.amazonaws.com/bosh-ci-pipeline/bosh-stemcell/vsphere/bosh-stemcell-vsphere-#{Bosh::Helpers::Build.candidate.number}.tgz"
@@ -303,7 +304,7 @@ namespace :spec do
         cd(ENV['WORKSPACE']) do
           ENV['BAT_DIRECTOR'] = ENV['BOSH_VSPHERE_MICROBOSH_IP']
           ENV['BAT_STEMCELL'] = latest_vsphere_stemcell_path
-          ENV['BAT_DEPLOYMENT_SPEC'] = '/tmp/vsphere-ci/deployments/bat.yml'
+          ENV['BAT_DEPLOYMENT_SPEC'] = "#{bosh_deployments_path}/bat.yml"
           ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
           ENV['BAT_FAST'] = 'true'
           st_version = stemcell_version(latest_vsphere_stemcell_path)
@@ -437,6 +438,21 @@ namespace :spec do
         @bosh_config_tempfile ||= Tempfile.new('bosh_config')
         @bosh_config_tempfile.path
       end
+    end
+
+    def bosh_deployments_path
+      unless @bosh_deployments_path
+        if ENV['RAKE_BOSH_DEPLOYMENTS']
+          @bosh_deployments_path = ENV['RAKE_BOSH_DEPLOYMENTS']
+        else
+          @bosh_deployments_path = Dir.mktmpdir('ci-')
+        end
+        if File.basename(@bosh_deployments_path) != 'deployments'
+          @bosh_deployments_path = File.join(@bosh_deployments_path, 'deployments')
+        end
+        mkdir_p(@bosh_deployments_path)
+      end
+      @bosh_deployments_path
     end
 
     def run(cmd, options = {})
