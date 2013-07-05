@@ -214,10 +214,8 @@ namespace :spec do
           run_bosh 'login admin admin'
 
           run_bosh "upload stemcell #{latest_openstack_stemcell_path}", debug_on_fail: true
-          status = run_bosh 'status'
-          director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
           st_version = stemcell_version(latest_openstack_stemcell_path)
-          Rake::Task[:bat_manifest].invoke(net_type, director_uuid, st_version)
+          Rake::Task[:bat_manifest].invoke(net_type, target_uuid, st_version)
         end
       end
 
@@ -250,7 +248,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:vsphere:teardown_microbosh'].invoke
+          Rake::Task['spec:system:teardown_bosh'].invoke(nil, '/tmp/vsphere-ci/deployments')
         end
       end
 
@@ -258,10 +256,9 @@ namespace :spec do
         begin
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
-            #Rake::Task['spec:system:vsphere:bat'].invoke
+          Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          #Rake::Task['spec:system:vsphere:teardown_full_bosh'].invoke
-          #Rake::Task['spec:system:vsphere:teardown_microbosh'].invoke
+          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], '/tmp/vsphere-ci/deployments')
         end
       end
 
@@ -288,31 +285,18 @@ namespace :spec do
           run_bosh 'micro deployment microbosh'
           run_bosh "micro deploy #{latest_vsphere_micro_bosh_stemcell_path}"
           run_bosh 'login admin admin'
-
-          run_bosh "upload stemcell #{latest_vsphere_stemcell_path}", debug_on_fail: true
-          status = run_bosh 'status'
-          director_uuid = /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
-          st_version = stemcell_version(latest_vsphere_stemcell_path)
-          Rake::Task[:bat_manifest].invoke(director_uuid, st_version)
-          generate_vsphere_full_bosh_stub(director_uuid)
         end
       end
 
       task :deploy_full_bosh do
+        generate_vsphere_full_bosh_stub(target_uuid)
         run_bosh 'deployment /tmp/vsphere-ci/deployments/bosh.yml'
         run_bosh 'diff rake/templates/full_bosh_diff_template_vsphere.yml.erb'
         run_bosh "upload release http://s3.amazonaws.com/bosh-ci-pipeline/release/bosh-#{Bosh::Helpers::Build.candidate.number}.tgz"
         run_bosh "upload stemcell http://s3.amazonaws.com/bosh-ci-pipeline/bosh-stemcell/vsphere/bosh-stemcell-vsphere-#{Bosh::Helpers::Build.candidate.number}.tgz"
         run_bosh 'deploy'
-      end
-
-      task :teardown_microbosh do
-        cd('/tmp/vsphere-ci/deployments') do
-          run_bosh 'delete deployment bat', :ignore_failures => true
-          run_bosh "delete stemcell bosh-stemcell #{stemcell_version(latest_vsphere_stemcell_path)}", :ignore_failures => true
-          run_bosh 'micro delete', :ignore_failures => true
-        end
-        rm_rf('/tmp/vsphere-ci/deployments')
+        run_bosh "target #{ENV['BOSH_IP']}"
+        run_bosh 'login admin admin'
       end
 
       task :bat do
@@ -322,6 +306,9 @@ namespace :spec do
           ENV['BAT_DEPLOYMENT_SPEC'] = '/tmp/vsphere-ci/deployments/bat.yml'
           ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
           ENV['BAT_FAST'] = 'true'
+          st_version = stemcell_version(latest_vsphere_stemcell_path)
+          Rake::Task[:bat_manifest].invoke(target_uuid, st_version)
+          run_bosh "upload stemcell #{latest_vsphere_stemcell_path}", debug_on_fail: true
           Rake::Task['bat'].execute
         end
       end
@@ -489,6 +476,36 @@ namespace :spec do
         @run_bosh_failures = 0
       end
       raise
+    end
+
+    def target_uuid
+      status = run_bosh 'status'
+      /UUID(\s)+((\w+-)+\w+)/.match(status)[2]
+    end
+
+    task :teardown_bosh, [:micro_ip, :micro_path] do |_, args|
+      if !args.micro_ip && !args.micro_path
+        fail 'Pass in the microbosh IP or microbosh deployment path'
+      end
+
+      # try to clean up after a broken bat
+      run_bosh 'delete deployment bat', force: true, ignore_failures: true
+
+      # cleaning up a full bosh
+      if args.micro_ip
+        run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}"
+        run_bosh "target #{args.micro_ip}"
+        run_bosh 'delete deployment full-bosh-jenkins', force: true, ignore_failures: true
+      end
+
+      # cleaning up a microbosh
+      if args.micro_path
+        run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}"
+        cd(args.micro_path) do
+          run_bosh 'micro delete'
+        end
+        rm_rf(args.micro_path)
+      end
     end
 
   end
