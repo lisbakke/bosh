@@ -248,7 +248,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke('', File.dirname(bosh_deployments_path))
+          Rake::Task['spec:system:teardown_bosh'].invoke('', bosh_deployments_path)
         end
       end
 
@@ -258,7 +258,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], File.dirname(bosh_deployments_path))
+          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], bosh_deployments_path))
         end
       end
 
@@ -525,7 +525,7 @@ namespace :spec do
         cd(args.micro_path) do
           run_bosh 'micro delete'
         end
-        rm_rf(args.micro_path)
+        rm_rf(File.dirname(args.micro_path))
       end
     end
 
