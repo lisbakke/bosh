@@ -145,6 +145,8 @@ namespace :spec do
         ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
         ENV['BAT_FAST'] = 'true'
         #ENV['BAT_DEBUG'] = 'verbose'
+        # This should be removed, we should honor this env variable
+        # leaving for now until we stop using the aws bootstrap code for bat
         ENV['BAT_DNS_HOST'] = Resolv.getaddress(director)
         Rake::Task['bat'].invoke
       end
@@ -235,7 +237,6 @@ namespace :spec do
           ENV['BAT_DEPLOYMENT_SPEC'] = '/tmp/openstack-ci/deployments/bat.yml'
           ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
           ENV['BAT_VCAP_PRIVATE_KEY'] = ENV['BOSH_OPENSTACK_PRIVATE_KEY']
-          ENV['BAT_DNS_HOST'] = ENV['BOSH_OPENSTACK_VIP_DIRECTOR_IP']
           ENV['BAT_FAST'] = 'true'
           Rake::Task['bat'].execute
         end
@@ -320,7 +321,6 @@ namespace :spec do
           ENV['BAT_STEMCELL'] = latest_vsphere_stemcell_path
           ENV['BAT_DEPLOYMENT_SPEC'] = '/tmp/vsphere-ci/deployments/bat.yml'
           ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
-          ENV['BAT_DNS_HOST'] = ENV['BOSH_VSPHERE_MICROBOSH_IP']
           ENV['BAT_FAST'] = 'true'
           Rake::Task['bat'].execute
         end

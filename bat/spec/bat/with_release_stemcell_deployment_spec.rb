@@ -38,7 +38,7 @@ describe "with release, stemcell and deployment" do
   context "dns" do
 
     before(:all) do
-      @dns = Resolv::DNS.new(:nameserver => bosh_director)
+      @dns = Resolv::DNS.new(:nameserver => bosh_dns_host)
     end
 
     context "external" do
