@@ -258,7 +258,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], bosh_deployments_path))
+          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], bosh_deployments_path)
         end
       end
 
