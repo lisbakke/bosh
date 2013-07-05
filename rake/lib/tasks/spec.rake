@@ -248,7 +248,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke(nil, '/tmp/vsphere-ci/deployments')
+          Rake::Task['spec:system:teardown_bosh'].invoke('', '/tmp/vsphere-ci/deployments')
         end
       end
 
@@ -428,10 +428,15 @@ namespace :spec do
     end
 
     def bosh_config_path
-      # We should keep a reference to the tempfile, otherwise,
-      # when the object gets GC'd, the tempfile is deleted.
-      @bosh_config_tempfile ||= Tempfile.new('bosh_config')
-      @bosh_config_tempfile.path
+      # allow override of config file, useful for running standalone rake tasks
+      if ENV['RAKE_BOSH_CONFIG']
+        ENV['RAKE_BOSH_CONFIG']
+      else
+        # We should keep a reference to the tempfile, otherwise,
+        # when the object gets GC'd, the tempfile is deleted.
+        @bosh_config_tempfile ||= Tempfile.new('bosh_config')
+        @bosh_config_tempfile.path
+      end
     end
 
     def run(cmd, options = {})
@@ -484,7 +489,7 @@ namespace :spec do
     end
 
     task :teardown_bosh, [:micro_ip, :micro_path] do |_, args|
-      if !args.micro_ip && !args.micro_path
+      if args.micro_ip.to_s.empty? && args.micro_path.to_s.empty?
         fail 'Pass in the microbosh IP or microbosh deployment path'
       end
 
@@ -492,15 +497,15 @@ namespace :spec do
       run_bosh 'delete deployment bat', force: true, ignore_failures: true
 
       # cleaning up a full bosh
-      if args.micro_ip
-        run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}"
+      unless args.micro_ip.to_s.empty?
+        run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}", ignore_failures: true
         run_bosh "target #{args.micro_ip}"
         run_bosh 'delete deployment full-bosh-jenkins', force: true, ignore_failures: true
       end
 
       # cleaning up a microbosh
-      if args.micro_path
-        run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}"
+      unless args.micro_path.to_s.empty?
+        run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}", ignore_failures: true
         cd(args.micro_path) do
           run_bosh 'micro delete'
         end
