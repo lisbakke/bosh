@@ -525,6 +525,7 @@ namespace :spec do
       unless args.micro_path.to_s.empty?
         run_bosh "delete stemcell bosh-stemcell #{Bosh::Helpers::Build.candidate.number}", ignore_failures: true
         cd(args.micro_path) do
+          run_bosh 'micro deployment microbosh'
           run_bosh 'micro delete'
         end
         rm_rf(File.dirname(args.micro_path))
