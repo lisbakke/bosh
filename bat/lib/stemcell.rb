@@ -4,27 +4,25 @@ class Stemcell
 
   attr_reader :path
   attr_reader :name
-  attr_reader :cpi
   attr_reader :version
 
-  def self.from_path(path)
-    Dir.mktmpdir do |dir|
-      sh("tar xzf #{path} --directory=#{dir} stemcell.MF")
-      stemcell_manifest = "#{dir}/stemcell.MF"
-      st = Psych.load_file(stemcell_manifest)
-      Stemcell.new(st['name'], st['version'], st['cloud_properties']['infrastructure'], path)
-    end
+  def self.from_bat_file(bat_file, path_or_uri)
+    bat_config = Psych.load_file(bat_file)
+    stemcell_config = bat_config['properties']['stemcell']
+
+    Stemcell.new(stemcell_config['name'],
+                 stemcell_config['version'],
+                 path_or_uri)
   end
 
-  def initialize(name, version, cpi=nil, path=nil)
+  def initialize(name, version, path=nil)
     @name = name
     @version = version
-    @cpi = cpi
     @path = path
   end
 
   def to_s
-    "#@name-#@version"
+    "#{name}-#{version}"
   end
 
   def to_path
@@ -34,5 +32,4 @@ class Stemcell
   def ==(other)
     to_s == other.to_s
   end
-
 end

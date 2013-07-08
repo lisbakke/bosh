@@ -8,7 +8,8 @@ module DeploymentHelper
   end
 
   def stemcell
-    @stemcell ||= Stemcell.from_path(BH::read_environment('BAT_STEMCELL'))
+    @stemcell ||= Stemcell.from_bat_file(BH::read_environment('BAT_DEPLOYMENT_SPEC'),
+                                         BH::read_environment('BAT_STEMCELL'))
   end
 
   def release
