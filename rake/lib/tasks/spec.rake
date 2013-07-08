@@ -282,7 +282,9 @@ namespace :spec do
             generate_vsphere_micro_bosh
           end
           run_bosh 'micro deployment microbosh'
-          run_bosh "micro deploy #{latest_vsphere_micro_bosh_stemcell_path}"
+          micro_bosh_stemcell_file = "micro-bosh-stemcell-vsphere-#{Bosh::Helpers::Build.candidate.number}.tgz"
+          run "wget http://s3.amazonaws.com/bosh-ci-pipeline/micro-bosh-stemcell/vsphere/#{micro_bosh_stemcell_file}"
+          run_bosh "micro deploy #{micro_bosh_stemcell_file}"
           run_bosh 'login admin admin'
         end
       end
