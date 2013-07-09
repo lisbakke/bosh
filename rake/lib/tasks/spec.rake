@@ -305,6 +305,7 @@ namespace :spec do
       task :bat, :target do |_, args|
         cd(ENV['WORKSPACE']) do
           ENV['BAT_DIRECTOR'] = args.target
+          ENV['BAT_DNS_HOST'] = ENV['BOSH_BAT_DNS_HOST']
           ENV['BAT_STEMCELL'] = "http://s3.amazonaws.com/bosh-ci-pipeline/bosh-stemcell/vsphere/bosh-stemcell-vsphere-#{Bosh::Helpers::Build.candidate.number}.tgz"
           ENV['BAT_DEPLOYMENT_SPEC'] = File.join(bosh_deployments_path, 'bat.yml')
           ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
