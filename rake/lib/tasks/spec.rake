@@ -246,7 +246,7 @@ namespace :spec do
       task :micro do
         begin
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
-          Rake::Task['spec:system:vsphere:bat'].invoke
+          Rake::Task['spec:system:vsphere:bat'].invoke(ENV['MICROBOSH_IP'])
         ensure
           Rake::Task['spec:system:teardown_bosh'].invoke('', bosh_deployments_path)
         end
@@ -256,7 +256,7 @@ namespace :spec do
         begin
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
-          Rake::Task['spec:system:vsphere:bat'].invoke
+          Rake::Task['spec:system:vsphere:bat'].invoke(ENV['BOSH_IP'])
         ensure
           Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], bosh_deployments_path)
         end
@@ -297,21 +297,19 @@ namespace :spec do
         pp bat_manifest
         template_path = File.expand_path(File.join(File.dirname(__FILE__), '..', '..',
                                                    'templates', 'bat_vsphere.yml.erb'))
-        output_path = 'bat.yml'
+        output_path = File.join(bosh_deployments_path, 'bat.yml')
         bat_manifest.generate(template_path, output_path, args.director_uuid)
         puts "wrote #{output_path}"
       end
 
-      task :bat do
+      task :bat, :target do |_, args|
         cd(ENV['WORKSPACE']) do
-          ENV['BAT_DIRECTOR'] = ENV['BOSH_VSPHERE_MICROBOSH_IP']
+          ENV['BAT_DIRECTOR'] = args.target
           ENV['BAT_STEMCELL'] = "http://s3.amazonaws.com/bosh-ci-pipeline/bosh-stemcell/vsphere/bosh-stemcell-vsphere-#{Bosh::Helpers::Build.candidate.number}.tgz"
-          ENV['BAT_DEPLOYMENT_SPEC'] = "#{bosh_deployments_path}/bat.yml"
+          ENV['BAT_DEPLOYMENT_SPEC'] = File.join(bosh_deployments_path, 'bat.yml')
           ENV['BAT_VCAP_PASSWORD'] = 'c1oudc0w'
           ENV['BAT_FAST'] = 'true'
-          #st_version = stemcell_version(latest_vsphere_stemcell_path)
-          Rake::Task[:bat_manifest].invoke(target_uuid, "#{Bosh::Helpers::Build.candidate.number}")
-          #run_bosh "upload stemcell #{latest_vsphere_stemcell_path}", debug_on_fail: true
+          Rake::Task['spec:system:vsphere:bat_manifest'].invoke(target_uuid, "#{Bosh::Helpers::Build.candidate.number}")
           Rake::Task['bat'].execute
         end
       end
