@@ -246,7 +246,7 @@ namespace :spec do
       task :micro do
         begin
           Rake::Task['spec:system:vsphere:deploy_micro'].invoke
-          Rake::Task['spec:system:vsphere:bat'].invoke(ENV['MICROBOSH_IP'])
+          Rake::Task['spec:system:vsphere:bat'].invoke(ENV['BOSH_MICROBOSH_IP'])
         ensure
           Rake::Task['spec:system:teardown_bosh'].invoke('', bosh_deployments_path)
         end
@@ -258,7 +258,7 @@ namespace :spec do
           Rake::Task['spec:system:vsphere:deploy_full_bosh'].invoke
           Rake::Task['spec:system:vsphere:bat'].invoke(ENV['BOSH_IP'])
         ensure
-          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['MICROBOSH_IP'], bosh_deployments_path)
+          Rake::Task['spec:system:teardown_bosh'].invoke(ENV['BOSH_MICROBOSH_IP'], bosh_deployments_path)
         end
       end
 
@@ -377,7 +377,7 @@ namespace :spec do
     end
 
     def generate_vsphere_micro_bosh
-      ip = ENV['BOSH_VSPHERE_MICROBOSH_IP']
+      ip = ENV['BOSH_MICROBOSH_IP']
       netmask = ENV['BOSH_VSPHERE_NETMASK']
       gateway = ENV['BOSH_VSPHERE_GATEWAY']
       dns = ENV['BOSH_VSPHERE_DNS']
@@ -401,7 +401,7 @@ namespace :spec do
     end
 
     def generate_vsphere_full_bosh_stub(director_uuid)
-      microbosh_ip = ENV['BOSH_VSPHERE_MICROBOSH_IP']
+      microbosh_ip = ENV['BOSH_MICROBOSH_IP']
       gateway = ENV['BOSH_VSPHERE_GATEWAY']
       net_cidr = ENV['BOSH_VSPHERE_NETWORK_CIDR']
       net_reserved_admin = ENV['BOSH_VSPHERE_NETWORK_RESERVED_ADMIN']

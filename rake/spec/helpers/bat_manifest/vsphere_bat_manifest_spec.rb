@@ -5,7 +5,7 @@ describe Bosh::Helpers::BatManifest::VsphereBatManifest do
 
   let(:env) {
     {
-        'BOSH_VSPHERE_BAT_IP' => '192.168.0.4',
+        'BOSH_BAT_IP' => '192.168.0.4',
         'BOSH_VSPHERE_NET_ID' => 'net_id',
         'BOSH_VSPHERE_NETWORK_CIDR' => '192.168.0.0/24',
         'BOSH_VSPHERE_NETWORK_RESERVED_ADMIN' => '192.168.0.5',
@@ -13,7 +13,7 @@ describe Bosh::Helpers::BatManifest::VsphereBatManifest do
         'BOSH_VSPHERE_NETWORK_STATIC_BAT' => '192.168.0.4',
         'BOSH_VSPHERE_NETWORK_STATIC_BOSH' => '192.168.0.3',
         'BOSH_VSPHERE_GATEWAY' => '192.168.0.1',
-        'MICROBOSH_IP' => '192.168.0.2',
+        'BOSH_MICROBOSH_IP' => '192.168.0.2',
     }
   }
 

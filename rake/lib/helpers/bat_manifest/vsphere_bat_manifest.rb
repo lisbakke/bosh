@@ -14,7 +14,7 @@ module Bosh
           :microbosh_ip) do
 
         def load_env(env)
-          self.ip = env['BOSH_VSPHERE_BAT_IP']
+          self.ip = env['BOSH_BAT_IP']
           self.net_id = env['BOSH_VSPHERE_NET_ID']
           self.net_cidr = env['BOSH_VSPHERE_NETWORK_CIDR']
           self.net_reserved_admin = env['BOSH_VSPHERE_NETWORK_RESERVED_ADMIN']
@@ -22,7 +22,7 @@ module Bosh
           self.net_static_bat = env['BOSH_VSPHERE_NETWORK_STATIC_BAT']
           self.net_static_bosh = env['BOSH_VSPHERE_NETWORK_STATIC_BOSH']
           self.gateway = env['BOSH_VSPHERE_GATEWAY']
-          self.microbosh_ip = env['MICROBOSH_IP']
+          self.microbosh_ip = env['BOSH_MICROBOSH_IP']
         end
 
         def net_reserved
