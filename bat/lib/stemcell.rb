@@ -8,10 +8,25 @@ class Stemcell
 
   def self.from_bat_file(bat_file, path_or_uri)
     bat_config = Psych.load_file(bat_file)
-    stemcell_config = bat_config['properties']['stemcell']
+    stemcell_bat_config = bat_config['properties']['stemcell']
 
-    Stemcell.new(stemcell_config['name'],
-                 stemcell_config['version'],
+    stemcell_name = stemcell_bat_config['name']
+    stemcell_version = stemcell_bat_config['version']
+
+    if stemcell_version == 'latest'
+      raise 'Specifying "latest" requires a local stemcell' unless File.exists(path_or_uri)
+
+      Dir.mktmpdir do |dir|
+        sh("tar xzf #{path_or_uri} --directory=#{dir} stemcell.MF")
+        stemcell_manifest_config = Psych.load_file(File.join(dir, 'stemcell.MF'))
+
+        stemcell_name = stemcell_manifest_config['name']
+        stemcell_version = stemcell_manifest_config['version']
+      end
+    end
+
+    Stemcell.new(stemcell_name,
+                 stemcell_version,
                  path_or_uri)
   end
 

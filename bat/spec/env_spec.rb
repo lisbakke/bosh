@@ -21,8 +21,8 @@ describe "initialization", :skip_task_check do
         %x{#{bosh_bin} --version}.should match %r{BOSH \d+\.\d+}
       end
 
-      it "should have a readable stemcell" do
-        File.exist?(stemcell.to_path).should be_true
+      it 'should have a local stemcell file or valid URI' do
+        expect(File.exist?(stemcell.to_path) || stemcell.to_path.match(%r{^http(s)?://})).to be_true
       end
 
       it "should have readable releases" do
